@@ -5,8 +5,16 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # ==============================
-#   INIT STATE
+#   INIT STATE  (met schema-fix)
 # ==============================
+
+# Verwijder oude tabellen om kolom-mismatch te voorkomen
+if "table1" in st.session_state:
+    del st.session_state["table1"]
+if "table2" in st.session_state:
+    del st.session_state["table2"]
+
+# Initialiseer nieuwe tabellen met juiste kolommen
 if "table1" not in st.session_state:
     st.session_state.table1 = pd.DataFrame(columns=[
         "Metric", "Variant A", "Variant B",
@@ -85,7 +93,6 @@ if uploaded_file:
     # ANALYSE KNOP
     # ==============================
     if st.button("Analyse uitvoeren"):
-        # ANALYSIS
         normalA, pA = normality_check(setA, 0.05)
         normalB, pB = normality_check(setB, 0.05)
         srm_result = SRM_check(setA, setB, 0.05)
@@ -94,16 +101,16 @@ if uploaded_file:
         avgB = setB.mean()
         medA = round(setA.median(), 1)
         medB = round(setB.median(), 1)
+
         percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
         mw_p = MWW_test(setA, setB)
 
-        # ==============================
-        # UPDATE TABLES
-        # ==============================
+        # Update table 1
         st.session_state.table1.loc[len(st.session_state.table1)] = [
             var1, varA, varB, normalA, normalB, srm_result, medA, medB
         ]
 
+        # Update table 2
         st.session_state.table2.loc[len(st.session_state.table2)] = [
             var1, varA, varB,
             round(avgA, 3), round(avgB, 3),
