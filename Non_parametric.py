@@ -9,14 +9,14 @@ from scipy import stats
 # ==============================
 if "table1" not in st.session_state:
     st.session_state.table1 = pd.DataFrame(columns=[
-        "Variant A", "Variant B",
+        "Metric", "Variant A", "Variant B",
         "Normality A", "Normality B",
         "SRM Result", "Median A", "Median B"
     ])
 
 if "table2" not in st.session_state:
     st.session_state.table2 = pd.DataFrame(columns=[
-        "Variant A", "Variant B",
+        "Metric", "Variant A", "Variant B",
         "Average A", "Average B",
         "Impact (%)", "Mann–Whitney p-value"
     ])
@@ -34,7 +34,7 @@ def raw_data_plotter(setA, setB, variable):
     ax.set_ylabel('Density')
     st.pyplot(fig)
 
-def normality_check(sample, alpha, name):
+def normality_check(sample, alpha):
     k2, p = stats.normaltest(sample)
     if p < alpha:
         return f"violates normality (p={p:.3f})", p
@@ -56,13 +56,7 @@ def MWW_test(sampleA, sampleB):
 # ==============================
 # STREAMLIT UI
 # ==============================
-st.title("Non-Parametric Tester (A/B Statistical Tool – Auto Table Updates)")
-
-# Button to CLEAR tables only
-if st.button("Tabel resetten"):
-    st.session_state.table1 = st.session_state.table1.iloc[0:0]
-    st.session_state.table2 = st.session_state.table2.iloc[0:0]
-    st.success("Tabellen leeggemaakt!")
+st.title("Non-Parametric Tester (A/B Statistical Tool)")
 
 uploaded_file = st.file_uploader("Upload your CSV file")
 
@@ -87,38 +81,48 @@ if uploaded_file:
     st.subheader("Raw Data Plot")
     raw_data_plotter(setA, setB, var1)
 
-    # ANALYSIS
-    normalA, pA = normality_check(setA, 0.05, "Set A")
-    normalB, pB = normality_check(setB, 0.05, "Set B")
-    srm_result = SRM_check(setA, setB, 0.05)
-
-    avgA = setA.mean()
-    avgB = setB.mean()
-    medA = setA.median()
-    medB = setB.median()
-    percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
-    mw_p = MWW_test(setA, setB)
-
     # ==============================
-    # AUTOMATIC TABLE UPDATE
+    # ANALYSE KNOP
     # ==============================
-    # Table 1
-    st.session_state.table1.loc[len(st.session_state.table1)] = [
-        varA, varB, normalA, normalB, srm_result, medA, medB
-    ]
+    if st.button("Analyse uitvoeren"):
+        # ANALYSIS
+        normalA, pA = normality_check(setA, 0.05)
+        normalB, pB = normality_check(setB, 0.05)
+        srm_result = SRM_check(setA, setB, 0.05)
 
-    # Table 2
-    st.session_state.table2.loc[len(st.session_state.table2)] = [
-        varA, varB,
-        round(avgA, 3), round(avgB, 3),
-        round(percent_impact, 2), round(mw_p, 4)
-    ]
+        avgA = setA.mean()
+        avgB = setB.mean()
+        medA = round(setA.median(), 1)
+        medB = round(setB.median(), 1)
+        percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
+        mw_p = MWW_test(setA, setB)
 
-    # ==============================
-    # DISPLAY TABLES
-    # ==============================
-    st.subheader("Tabel 1: Normality, SRM, Medians")
-    st.dataframe(st.session_state.table1)
+        # ==============================
+        # UPDATE TABLES
+        # ==============================
+        st.session_state.table1.loc[len(st.session_state.table1)] = [
+            var1, varA, varB, normalA, normalB, srm_result, medA, medB
+        ]
 
-    st.subheader("Tabel 2: Averages, Impact, Mann–Whitney")
-    st.dataframe(st.session_state.table2)
+        st.session_state.table2.loc[len(st.session_state.table2)] = [
+            var1, varA, varB,
+            round(avgA, 3), round(avgB, 3),
+            round(percent_impact, 2), round(mw_p, 4)
+        ]
+
+# ==============================
+# DISPLAY TABLES (WITH WIDTH FIX)
+# ==============================
+st.subheader("Tabel 1: Normality, SRM, Medians")
+st.dataframe(st.session_state.table1, use_container_width=True)
+
+st.subheader("Tabel 2: Averages, Impact, Mann–Whitney")
+st.dataframe(st.session_state.table2, use_container_width=True)
+
+# ==============================
+# RESET BUTTON NOW AT BOTTOM
+# ==============================
+if st.button("Tabel resetten"):
+    st.session_state.table1 = st.session_state.table1.iloc[0:0]
+    st.session_state.table2 = st.session_state.table2.iloc[0:0]
+    st.success("Tabellen leeggemaakt!")
