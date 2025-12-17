@@ -56,11 +56,18 @@ def MWW_test(sampleA, sampleB):
 # ==============================
 # STREAMLIT UI
 # ==============================
-st.title("Non-Parametric Tester (A/B Statistical Tool – with tables)")
+st.title("Non-Parametric Tester (A/B Statistical Tool – Auto Table Updates)")
+
+# Button to CLEAR tables only
+if st.button("Tabel resetten"):
+    st.session_state.table1 = st.session_state.table1.iloc[0:0]
+    st.session_state.table2 = st.session_state.table2.iloc[0:0]
+    st.success("Tabellen leeggemaakt!")
 
 uploaded_file = st.file_uploader("Upload your CSV file")
 
 if uploaded_file:
+    # Load data
     data = pd.read_csv(uploaded_file)
     st.write("Columns found:", list(data.columns))
 
@@ -80,7 +87,7 @@ if uploaded_file:
     st.subheader("Raw Data Plot")
     raw_data_plotter(setA, setB, var1)
 
-    # ------------- RESULTS -------------
+    # ANALYSIS
     normalA, pA = normality_check(setA, 0.05, "Set A")
     normalB, pB = normality_check(setB, 0.05, "Set B")
     srm_result = SRM_check(setA, setB, 0.05)
@@ -89,25 +96,27 @@ if uploaded_file:
     avgB = setB.mean()
     medA = setA.median()
     medB = setB.median()
-
     percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
     mw_p = MWW_test(setA, setB)
 
-    # BUTTON
-    if st.button("Tabel verversen / nieuwe regel toevoegen"):
-        # Update Table 1
-        st.session_state.table1.loc[len(st.session_state.table1)] = [
-            varA, varB, normalA, normalB, srm_result, medA, medB
-        ]
+    # ==============================
+    # AUTOMATIC TABLE UPDATE
+    # ==============================
+    # Table 1
+    st.session_state.table1.loc[len(st.session_state.table1)] = [
+        varA, varB, normalA, normalB, srm_result, medA, medB
+    ]
 
-        # Update Table 2
-        st.session_state.table2.loc[len(st.session_state.table2)] = [
-            varA, varB,
-            round(avgA, 3), round(avgB, 3),
-            round(percent_impact, 2), round(mw_p, 4)
-        ]
+    # Table 2
+    st.session_state.table2.loc[len(st.session_state.table2)] = [
+        varA, varB,
+        round(avgA, 3), round(avgB, 3),
+        round(percent_impact, 2), round(mw_p, 4)
+    ]
 
+    # ==============================
     # DISPLAY TABLES
+    # ==============================
     st.subheader("Tabel 1: Normality, SRM, Medians")
     st.dataframe(st.session_state.table1)
 
