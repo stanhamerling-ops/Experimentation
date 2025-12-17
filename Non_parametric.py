@@ -2,11 +2,24 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sea
-import plotly.express as px
 from scipy import stats
-from scipy.stats import skewnorm
-import random
+
+# ==============================
+#   INIT STATE
+# ==============================
+if "table1" not in st.session_state:
+    st.session_state.table1 = pd.DataFrame(columns=[
+        "Variant A", "Variant B",
+        "Normality A", "Normality B",
+        "SRM Result", "Median A", "Median B"
+    ])
+
+if "table2" not in st.session_state:
+    st.session_state.table2 = pd.DataFrame(columns=[
+        "Variant A", "Variant B",
+        "Average A", "Average B",
+        "Impact (%)", "Mann–Whitney p-value"
+    ])
 
 # ==============================
 #   FUNCTIONS
@@ -24,29 +37,26 @@ def raw_data_plotter(setA, setB, variable):
 def normality_check(sample, alpha, name):
     k2, p = stats.normaltest(sample)
     if p < alpha:
-        return f"{name} violates normality (p={p:.3f})"
+        return f"violates normality (p={p:.3f})", p
     else:
-        return f"{name} is normally distributed (p={p:.3f})"
+        return f"normal (p={p:.3f})", p
 
 def SRM_check(sample_A, sample_B, alpha):
     observed = [len(sample_A), len(sample_B)]
     chi, p = stats.chisquare(observed)
     if p < alpha:
-        return f"Sample Ratio Mismatch detected (p={p:.3f})"
+        return f"SRM mismatch (p={p:.3f})"
     else:
-        return f"Sample ratio is OK (p={p:.3f})"
+        return f"OK (p={p:.3f})"
 
-def MWW_test(sampleA, sampleB, alpha):
+def MWW_test(sampleA, sampleB):
     U, p = stats.mannwhitneyu(sampleA, sampleB)
-    if p < alpha:
-        return f"Difference is significant (U={U:.3f}, p={p:.3f})"
-    else:
-        return f"No significant difference (U={U:.3f}, p={p:.3f})"
+    return p
 
 # ==============================
 # STREAMLIT UI
 # ==============================
-st.title("Non-Parametric Tester (A/B Statistical Tool)")
+st.title("Non-Parametric Tester (A/B Statistical Tool – with tables)")
 
 uploaded_file = st.file_uploader("Upload your CSV file")
 
@@ -55,9 +65,7 @@ if uploaded_file:
     st.write("Columns found:", list(data.columns))
 
     variantcolumn = st.selectbox("Select the variant column", data.columns)
-
     variants = data[variantcolumn].astype(str).unique()
-    st.write("Detected variants:", variants)
 
     varA = st.selectbox("Select Variant A", variants)
     varB = st.selectbox("Select Variant B", variants)
@@ -69,31 +77,39 @@ if uploaded_file:
     setA = data[var1][data[variantcolumn].astype(str) == varA].fillna(0)
     setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
 
-    # ==============================
-    # ANALYSIS
-    # ==============================
     st.subheader("Raw Data Plot")
     raw_data_plotter(setA, setB, var1)
 
-    st.subheader("Normality Tests")
-    st.write(normality_check(setA, 0.05, 'Set A'))
-    st.write(normality_check(setB, 0.05, 'Set B'))
+    # ------------- RESULTS -------------
+    normalA, pA = normality_check(setA, 0.05, "Set A")
+    normalB, pB = normality_check(setB, 0.05, "Set B")
+    srm_result = SRM_check(setA, setB, 0.05)
 
-    st.subheader("Sample Ratio Test (SRM)")
-    st.write(SRM_check(setA, setB, 0.05))
-
-    st.subheader("Averages & Impact")
     avgA = setA.mean()
     avgB = setB.mean()
-    st.write(f"Average A: {avgA:.3f}")
-    st.write(f"Average B: {avgB:.3f}")
+    medA = setA.median()
+    medB = setB.median()
 
     percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
-    st.write(f"Percentual impact: {percent_impact:.2f}%")
+    mw_p = MWW_test(setA, setB)
 
-    st.subheader("Medians")
-    st.write(f"Median A: {setA.median():.3f}")
-    st.write(f"Median B: {setB.median():.3f}")
+    # BUTTON
+    if st.button("Tabel verversen / nieuwe regel toevoegen"):
+        # Update Table 1
+        st.session_state.table1.loc[len(st.session_state.table1)] = [
+            varA, varB, normalA, normalB, srm_result, medA, medB
+        ]
 
-    st.subheader("Mann-Whitney U Test")
-    st.write(MWW_test(setA, setB, 0.1))
+        # Update Table 2
+        st.session_state.table2.loc[len(st.session_state.table2)] = [
+            varA, varB,
+            round(avgA, 3), round(avgB, 3),
+            round(percent_impact, 2), round(mw_p, 4)
+        ]
+
+    # DISPLAY TABLES
+    st.subheader("Tabel 1: Normality, SRM, Medians")
+    st.dataframe(st.session_state.table1)
+
+    st.subheader("Tabel 2: Averages, Impact, Mann–Whitney")
+    st.dataframe(st.session_state.table2)
