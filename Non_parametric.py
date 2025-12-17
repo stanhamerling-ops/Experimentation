@@ -5,9 +5,41 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # ==============================
+#   PAGE LAYOUT + FULL WIDTH CSS
+# ==============================
+st.set_page_config(layout="wide")
+
+# Maak de hele pagina maximaal breed + rek tabellen volledig uit
+st.markdown(
+    """
+    <style>
+    /* Maak main container bijna full-width */
+    .main {
+        max-width: 95% !important;
+        padding-left: 2rem !important;
+        padding-right: 2rem !important;
+    }
+
+    /* Zorg dat dataframes alle beschikbare breedte pakken */
+    .stDataFrame {
+        width: 100% !important;
+    }
+
+    /* Kolommen laten meeschalen (auto-fit) */
+    .stDataFrame [data-testid="column-header"] {
+        flex: 1 !important;
+    }
+    .stDataFrame [data-testid="data-cell"] {
+        flex: 1 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ==============================
 #   INIT STATE (correct schema validation)
 # ==============================
-
 required_cols_table1 = [
     "Metric", "Variant A", "Variant B",
     "Normality A", "Normality B",
@@ -20,18 +52,17 @@ required_cols_table2 = [
     "Impact (%)", "Mann–Whitney p-value"
 ]
 
-# Table 1 controleren
+# Table 1 correct maken
 if "table1" not in st.session_state or list(st.session_state.table1.columns) != required_cols_table1:
     st.session_state.table1 = pd.DataFrame(columns=required_cols_table1)
 
-# Table 2 controleren
+# Table 2 correct maken
 if "table2" not in st.session_state or list(st.session_state.table2.columns) != required_cols_table2:
     st.session_state.table2 = pd.DataFrame(columns=required_cols_table2)
 
 # ==============================
 #   FUNCTIONS
 # ==============================
-
 def raw_data_plotter(setA, setB, variable):
     fig, ax = plt.subplots(1, 1)
     ax.hist(setA, density=False, histtype='stepfilled', alpha=0.7, label='A', bins=100)
@@ -81,6 +112,7 @@ if uploaded_file:
     numeric_columns = data.select_dtypes(include=['int64', 'float64']).columns
     var1 = st.selectbox("Select the metric column", numeric_columns)
 
+    # Filter A/B sets
     setA = data[var1][data[variantcolumn].astype(str) == varA].fillna(0)
     setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
 
@@ -117,7 +149,7 @@ if uploaded_file:
         ]
 
 # ==============================
-# DISPLAY TABLES
+# DISPLAY TABLES (fullscreen breedte)
 # ==============================
 st.subheader("Tabel 1: Normality, SRM, Medians")
 st.dataframe(st.session_state.table1, use_container_width=True)
