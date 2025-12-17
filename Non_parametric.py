@@ -5,33 +5,33 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # ==============================
-#   INIT STATE  (met schema-fix)
+#   INIT STATE (correct schema validation)
 # ==============================
 
-# Verwijder oude tabellen om kolom-mismatch te voorkomen
-if "table1" in st.session_state:
-    del st.session_state["table1"]
-if "table2" in st.session_state:
-    del st.session_state["table2"]
+required_cols_table1 = [
+    "Metric", "Variant A", "Variant B",
+    "Normality A", "Normality B",
+    "SRM Result", "Median A", "Median B"
+]
 
-# Initialiseer nieuwe tabellen met juiste kolommen
-if "table1" not in st.session_state:
-    st.session_state.table1 = pd.DataFrame(columns=[
-        "Metric", "Variant A", "Variant B",
-        "Normality A", "Normality B",
-        "SRM Result", "Median A", "Median B"
-    ])
+required_cols_table2 = [
+    "Metric", "Variant A", "Variant B",
+    "Average A", "Average B",
+    "Impact (%)", "Mann–Whitney p-value"
+]
 
-if "table2" not in st.session_state:
-    st.session_state.table2 = pd.DataFrame(columns=[
-        "Metric", "Variant A", "Variant B",
-        "Average A", "Average B",
-        "Impact (%)", "Mann–Whitney p-value"
-    ])
+# Table 1 controleren
+if "table1" not in st.session_state or list(st.session_state.table1.columns) != required_cols_table1:
+    st.session_state.table1 = pd.DataFrame(columns=required_cols_table1)
+
+# Table 2 controleren
+if "table2" not in st.session_state or list(st.session_state.table2.columns) != required_cols_table2:
+    st.session_state.table2 = pd.DataFrame(columns=required_cols_table2)
 
 # ==============================
 #   FUNCTIONS
 # ==============================
+
 def raw_data_plotter(setA, setB, variable):
     fig, ax = plt.subplots(1, 1)
     ax.hist(setA, density=False, histtype='stepfilled', alpha=0.7, label='A', bins=100)
@@ -69,7 +69,6 @@ st.title("Non-Parametric Tester (A/B Statistical Tool)")
 uploaded_file = st.file_uploader("Upload your CSV file")
 
 if uploaded_file:
-    # Load data
     data = pd.read_csv(uploaded_file)
     st.write("Columns found:", list(data.columns))
 
@@ -82,7 +81,6 @@ if uploaded_file:
     numeric_columns = data.select_dtypes(include=['int64', 'float64']).columns
     var1 = st.selectbox("Select the metric column", numeric_columns)
 
-    # Filter sets
     setA = data[var1][data[variantcolumn].astype(str) == varA].fillna(0)
     setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
 
@@ -99,18 +97,19 @@ if uploaded_file:
 
         avgA = setA.mean()
         avgB = setB.mean()
+
         medA = round(setA.median(), 1)
         medB = round(setB.median(), 1)
 
         percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
         mw_p = MWW_test(setA, setB)
 
-        # Update table 1
+        # Update Table 1
         st.session_state.table1.loc[len(st.session_state.table1)] = [
             var1, varA, varB, normalA, normalB, srm_result, medA, medB
         ]
 
-        # Update table 2
+        # Update Table 2
         st.session_state.table2.loc[len(st.session_state.table2)] = [
             var1, varA, varB,
             round(avgA, 3), round(avgB, 3),
@@ -118,7 +117,7 @@ if uploaded_file:
         ]
 
 # ==============================
-# DISPLAY TABLES (WITH WIDTH FIX)
+# DISPLAY TABLES
 # ==============================
 st.subheader("Tabel 1: Normality, SRM, Medians")
 st.dataframe(st.session_state.table1, use_container_width=True)
@@ -127,7 +126,7 @@ st.subheader("Tabel 2: Averages, Impact, Mann–Whitney")
 st.dataframe(st.session_state.table2, use_container_width=True)
 
 # ==============================
-# RESET BUTTON NOW AT BOTTOM
+# RESET BUTTON
 # ==============================
 if st.button("Tabel resetten"):
     st.session_state.table1 = st.session_state.table1.iloc[0:0]
