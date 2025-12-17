@@ -5,33 +5,37 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # ==============================
-#   PAGE CSS (only widen tables)
+#   PAGE CSS (only for TWO tables)
 # ==============================
 
 st.markdown("""
     <style>
-    /* Alleen tabellen fullscreen maken */
-    .wide-table {
+
+    /* TABLE 1 WIDE ONLY */
+    .custom-wide-table-1 .stDataFrame {
         width: 95% !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
     }
-
-    /* Dataframe zelf moet 100% breed zijn */
-    .wide-table .stDataFrame {
-        width: 100% !important;
+    .custom-wide-table-1 [data-testid="column-header"] {
+        flex: 1 !important;
     }
-
-    /* Kolommen flex */
-    .stDataFrame [data-testid="column-header"] {
+    .custom-wide-table-1 [data-testid="data-cell"] {
         flex: 1 !important;
     }
 
-    .stDataFrame [data-testid="data-cell"] {
+    /* TABLE 2 WIDE ONLY */
+    .custom-wide-table-2 .stDataFrame {
+        width: 95% !important;
+    }
+    .custom-wide-table-2 [data-testid="column-header"] {
         flex: 1 !important;
     }
+    .custom-wide-table-2 [data-testid="data-cell"] {
+        flex: 1 !important;
+    }
+
     </style>
 """, unsafe_allow_html=True)
+
 
 # ==============================
 #   INIT STATE (schema check)
@@ -131,16 +135,16 @@ if uploaded_file:
         ]
 
 # ==============================
-#   DISPLAY TABLES (WIDE)
+# TABLES (WIDE ONLY HERE)
 # ==============================
 
 st.subheader("Tabel 1: Normality, SRM, Medians")
-st.markdown('<div class="wide-table">', unsafe_allow_html=True)
+st.markdown('<div class="custom-wide-table-1">', unsafe_allow_html=True)
 st.dataframe(st.session_state.table1, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
 st.subheader("Tabel 2: Averages, Impact, Mann–Whitney")
-st.markdown('<div class="wide-table">', unsafe_allow_html=True)
+st.markdown('<div class="custom-wide-table-2">', unsafe_allow_html=True)
 st.dataframe(st.session_state.table2, use_container_width=True)
 st.markdown('</div>', unsafe_allow_html=True)
 
