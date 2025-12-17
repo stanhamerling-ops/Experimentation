@@ -5,6 +5,34 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # ==============================
+#   CSS FOR TABLE SECTION ONLY
+# ==============================
+st.markdown("""
+    <style>
+    /* Alleen de tabellen-sectie breed maken */
+    .wide-table-section {
+        max-width: 95% !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
+    }
+
+    /* Dataframes binnen die sectie 100% breed */
+    .wide-table-section .stDataFrame {
+        width: 100% !important;
+    }
+
+    /* Kolommen auto-fit */
+    .wide-table-section [data-testid="column-header"] {
+        flex: 1 !important;
+    }
+
+    .wide-table-section [data-testid="data-cell"] {
+        flex: 1 !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# ==============================
 #   INIT STATE (schema check)
 # ==============================
 
@@ -20,11 +48,10 @@ required_cols_table2 = [
     "Impact (%)", "Mann–Whitney p-value"
 ]
 
-# Table 1 correct maken
+# Correcte initialisatie
 if "table1" not in st.session_state or list(st.session_state.table1.columns) != required_cols_table1:
     st.session_state.table1 = pd.DataFrame(columns=required_cols_table1)
 
-# Table 2 correct maken
 if "table2" not in st.session_state or list(st.session_state.table2.columns) != required_cols_table2:
     st.session_state.table2 = pd.DataFrame(columns=required_cols_table2)
 
@@ -56,68 +83,68 @@ def MWW_test(sampleA, sampleB):
     return p
 
 # ==============================
-#   UI (2 column layout)
+#   UI — SETTINGS/GRAPH SECTION (top)
 # ==============================
 
 st.title("Non-Parametric Tester (A/B Statistical Tool)")
 
-# --- LEFT COLUMN FOR INPUT ---
-left, right = st.columns([1, 2])  # right column = double width
+uploaded_file = st.file_uploader("Upload your CSV file")
 
-with left:
+if uploaded_file:
+    data = pd.read_csv(uploaded_file)
+    st.write("Columns found:", list(data.columns))
 
-    uploaded_file = st.file_uploader("Upload your CSV file")
+    variantcolumn = st.selectbox("Select the variant column", data.columns)
+    variants = data[variantcolumn].astype(str).unique()
 
-    if uploaded_file:
-        data = pd.read_csv(uploaded_file)
-        st.write("Columns found:", list(data.columns))
+    varA = st.selectbox("Select Variant A", variants)
+    varB = st.selectbox("Select Variant B", variants)
 
-        variantcolumn = st.selectbox("Select the variant column", data.columns)
-        variants = data[variantcolumn].astype(str).unique()
+    numeric_columns = data.select_dtypes(include=['int64', 'float64']).columns
+    var1 = st.selectbox("Select the metric column", numeric_columns)
 
-        varA = st.selectbox("Select Variant A", variants)
-        varB = st.selectbox("Select Variant B", variants)
+    setA = data[var1][data[variantcolumn].astype(str) == varA].fillna(0)
+    setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
 
-        numeric_columns = data.select_dtypes(include=['int64', 'float64']).columns
-        var1 = st.selectbox("Select the metric column", numeric_columns)
+    st.subheader("Raw Data Plot")
+    raw_data_plotter(setA, setB, var1)
 
-        setA = data[var1][data[variantcolumn].astype(str) == varA].fillna(0)
-        setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
+    if st.button("Analyse uitvoeren"):
+        normalA, pA = normality_check(setA, 0.05)
+        normalB, pB = normality_check(setB, 0.05)
+        srm_result = SRM_check(setA, setB, 0.05)
 
-        st.subheader("Raw Data Plot")
-        raw_data_plotter(setA, setB, var1)
+        avgA = setA.mean()
+        avgB = setB.mean()
+        medA = round(setA.median(), 1)
+        medB = round(setB.median(), 1)
+        percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
+        mw_p = MWW_test(setA, setB)
 
-        if st.button("Analyse uitvoeren"):
-            normalA, pA = normality_check(setA, 0.05)
-            normalB, pB = normality_check(setB, 0.05)
-            srm_result = SRM_check(setA, setB, 0.05)
+        st.session_state.table1.loc[len(st.session_state.table1)] = [
+            var1, varA, varB, normalA, normalB, srm_result, medA, medB
+        ]
 
-            avgA = setA.mean()
-            avgB = setB.mean()
-            medA = round(setA.median(), 1)
-            medB = round(setB.median(), 1)
-            percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
-            mw_p = MWW_test(setA, setB)
+        st.session_state.table2.loc[len(st.session_state.table2)] = [
+            var1, varA, varB, round(avgA, 3), round(avgB, 3),
+            round(percent_impact, 2), round(mw_p, 4)
+        ]
 
-            st.session_state.table1.loc[len(st.session_state.table1)] = [
-                var1, varA, varB, normalA, normalB, srm_result, medA, medB
-            ]
+# ==============================
+#   TABLE SECTION (FULL WIDTH BELOW)
+# ==============================
 
-            st.session_state.table2.loc[len(st.session_state.table2)] = [
-                var1, varA, varB, round(avgA, 3), round(avgB, 3),
-                round(percent_impact, 2), round(mw_p, 4)
-            ]
+st.markdown('<div class="wide-table-section">', unsafe_allow_html=True)
 
-# --- RIGHT COLUMN FOR TABLES ---
-with right:
+st.markdown("### Tabel 1: Normality, SRM, Medians")
+st.dataframe(st.session_state.table1, use_container_width=True)
 
-    st.markdown("### Tabel 1: Normality, SRM, Medians")
-    st.dataframe(st.session_state.table1, use_container_width=True)
+st.markdown("### Tabel 2: Averages, Impact, Mann–Whitney")
+st.dataframe(st.session_state.table2, use_container_width=True)
 
-    st.markdown("### Tabel 2: Averages, Impact, Mann–Whitney")
-    st.dataframe(st.session_state.table2, use_container_width=True)
+if st.button("Tabel resetten"):
+    st.session_state.table1 = st.session_state.table1.iloc[0:0]
+    st.session_state.table2 = st.session_state.table2.iloc[0:0]
+    st.success("Tabellen leeggemaakt!")
 
-    if st.button("Tabel resetten"):
-        st.session_state.table1 = st.session_state.table1.iloc[0:0]
-        st.session_state.table2 = st.session_state.table2.iloc[0:0]
-        st.success("Tabellen leeggemaakt!")
+st.markdown('</div>', unsafe_allow_html=True)
