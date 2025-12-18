@@ -31,12 +31,16 @@ if "table1" not in st.session_state or list(st.session_state.table1.columns) != 
 if "table2" not in st.session_state or list(st.session_state.table2.columns) != required_cols_table2:
     st.session_state.table2 = pd.DataFrame(columns=required_cols_table2)
 
+# Toggle state for showing/hiding plot
+if "show_plot" not in st.session_state:
+    st.session_state.show_plot = False
+
 # ==============================
 # FUNCTIONS
 # ==============================
 
 def raw_data_plotter(setA, setB, variable):
-    fig, ax = plt.subplots(1, 1)
+    fig, ax = plt.subplots(1, 1, figsize=(5, 3))  # <-- HALVE GROOTTE (breed + hoog)
     ax.hist(setA, density=False, histtype='stepfilled', alpha=0.7, label='A', bins=100)
     ax.hist(setB, density=False, histtype='stepfilled', alpha=0.7, label='B', bins=100)
     ax.legend(loc='best', frameon=False)
@@ -59,7 +63,7 @@ def MWW_test(sampleA, sampleB):
     return p
 
 # ==============================
-#   UI — SETTINGS/GRAPH SECTION (top)
+#   UI — SETTINGS/GRAPH SECTION
 # ==============================
 
 st.title("Non-Parametric Tester (A/B Statistical Tool)")
@@ -82,16 +86,24 @@ if uploaded_file:
     setA = data[var1][data[variantcolumn].astype(str) == varA].fillna(0)
     setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
 
+    # ==============================
+    #   RAW DATA PLOT + TOGGLE BUTTON
+    # ==============================
     st.subheader("Raw Data Plot")
 
-    # ==============================
-    #   HALF-WIDTH PLOT
-    # ==============================
-    col_plot, col_empty = st.columns([1, 1])  # 50% | 50%
+    # Toggle knop
+    if st.button("📊 Grafiek tonen / verbergen"):
+        st.session_state.show_plot = not st.session_state.show_plot
 
-    with col_plot:
-        raw_data_plotter(setA, setB, var1)
+    # 50% breedte via kolommen
+    if st.session_state.show_plot:
+        col_plot, col_empty = st.columns([1, 1])
+        with col_plot:
+            raw_data_plotter(setA, setB, var1)
 
+    # ==============================
+    #   ANALYSE
+    # ==============================
     if st.button("Analyse uitvoeren"):
         normalA, pA = normality_check(setA, 0.05)
         normalB, pB = normality_check(setB, 0.05)
@@ -114,7 +126,7 @@ if uploaded_file:
         ]
 
 # ==============================
-#   TABLE SECTION (FULL WIDTH)
+#   TABLE SECTION
 # ==============================
 
 st.markdown("### Tabel 1: Normality, SRM, Medians")
