@@ -15,8 +15,8 @@ st.set_page_config(layout="wide")
 
 required_cols_table1 = [
     "KPI", "Control", "Variant",
-    "Normality Control", "Normality Variant",
-    "SRM Result", "Median Control", "Median Variant"
+    "Norm. Control", "Norm. Variant",
+    "SRM Result", "Med. Control", "Med. Variant"
 ]
 
 required_cols_table2 = [
