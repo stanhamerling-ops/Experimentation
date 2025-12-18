@@ -3,7 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
-from airtable import airtable_test_ui
 
 # ==============================
 #   PAGE CONFIG (WIDE MODE)
@@ -159,4 +158,8 @@ if st.button("Tabel resetten"):
     st.session_state.table2 = st.session_state.table2.iloc[0:0]
     st.success("Tabellen leeggemaakt!")
 
+# ==============================
+#   AIRTABLE UI (FROM airtable.py)
+# ==============================
+from airtable import airtable_test_ui
 airtable_test_ui()
