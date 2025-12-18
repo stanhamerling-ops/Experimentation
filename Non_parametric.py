@@ -53,12 +53,18 @@ def raw_data_plotter(setA, setB, variable):
 
 def normality_check(sample, alpha):
     k2, p = stats.normaltest(sample)
-    if p < alpha: return ("violates normality", p) else: return ("normal", p)
+    if p < alpha:
+        return ("violates normality", p)
+    else:
+        return ("normal", p)
 
 def SRM_check(sample_A, sample_B, alpha):
     observed = [len(sample_A), len(sample_B)]
     chi, p = stats.chisquare(observed)
-    if p < alpha: return "SRM mismatch" else: return "OK"
+    if p < alpha:
+        return "SRM mismatch"
+    else:
+        return "OK"
 
 def MWW_test(sampleA, sampleB):
     U, p = stats.mannwhitneyu(sampleA, sampleB)
