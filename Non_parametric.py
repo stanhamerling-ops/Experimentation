@@ -15,12 +15,14 @@ st.set_page_config(layout="wide")
 
 required_cols_table1 = [
     "KPI", "Control", "Variant",
+    "N Control", "N Variant",
     "Norm. Control", "Norm. Variant",
     "SRM Result", "Med. Control", "Med. Variant"
 ]
 
 required_cols_table2 = [
     "KPI", "Control", "Variant",
+    "N Control", "N Variant",
     "Avg. Control", "Avg. Variant",
     "Impact (%)", "p-value"
 ]
@@ -40,9 +42,9 @@ if "show_plot" not in st.session_state:
 # ==============================
 
 def raw_data_plotter(setA, setB, variable):
-    fig, ax = plt.subplots(1, 1, figsize=(5, 3))  # <-- HALVE GROOTTE (breed + hoog)
-    ax.hist(setA, density=False, histtype='stepfilled', alpha=0.7, label='A', bins=100)
-    ax.hist(setB, density=False, histtype='stepfilled', alpha=0.7, label='B', bins=100)
+    fig, ax = plt.subplots(1, 1, figsize=(5, 3))  # half width/height chart
+    ax.hist(setA, density=False, histtype='stepfilled', alpha=0.7, label='Control', bins=100)
+    ax.hist(setB, density=False, histtype='stepfilled', alpha=0.7, label='Variant', bins=100)
     ax.legend(loc='best', frameon=False)
     ax.set_title('Density curve')
     ax.set_xlabel(variable)
@@ -116,12 +118,22 @@ if uploaded_file:
         percent_impact = ((avgB - avgA) / avgA) * 100 if avgA != 0 else float("inf")
         mw_p = MWW_test(setA, setB)
 
+        # ===== TABLE 1 ADD ROW =====
         st.session_state.table1.loc[len(st.session_state.table1)] = [
-            var1, varA, varB, normalA, normalB, srm_result, medA, medB
+            var1,            # KPI
+            varA, varB,      # Control, Variant
+            len(setA), len(setB),          # N Control / N Variant
+            normalA, normalB,              # Normality
+            srm_result,
+            medA, medB
         ]
 
+        # ===== TABLE 2 ADD ROW =====
         st.session_state.table2.loc[len(st.session_state.table2)] = [
-            var1, varA, varB, round(avgA, 3), round(avgB, 3),
+            var1,            # KPI
+            varA, varB,      # Control, Variant
+            len(setA), len(setB),          # N Control / N Variant
+            round(avgA, 3), round(avgB, 3),
             round(percent_impact, 2), round(mw_p, 4)
         ]
 
