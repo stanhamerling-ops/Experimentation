@@ -5,31 +5,9 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # ==============================
-#   GLOBAL CSS
+#   PAGE CONFIG (WIDE MODE)
 # ==============================
-
-st.markdown("""
-<style>
-
-/* Maak de volledige centrale content breder */
-.main > div {
-    max-width: 95% !important;
-    padding-left: 20px !important;
-    padding-right: 20px !important;
-}
-
-/* Zorg dat dataframes altijd 100% breed renderen */
-[data-testid="stDataFrame"] {
-    width: 100% !important;
-}
-
-/* Kolombreedtes beter laten spreiden */
-[data-testid="stDataFrame"] [data-testid="column-header"],
-[data-testid="stDataFrame"] [data-testid="data-cell"] {
-    flex: 1 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(layout="wide")
 
 # ==============================
 #   INIT STATE (schema check)
@@ -81,7 +59,7 @@ def MWW_test(sampleA, sampleB):
     return p
 
 # ==============================
-#   UI — SETTINGS/GRAPH SECTION
+#   UI — SETTINGS/GRAPH SECTION (top)
 # ==============================
 
 st.title("Non-Parametric Tester (A/B Statistical Tool)")
@@ -105,7 +83,14 @@ if uploaded_file:
     setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
 
     st.subheader("Raw Data Plot")
-    raw_data_plotter(setA, setB, var1)
+
+    # ==============================
+    #   HALF-WIDTH PLOT
+    # ==============================
+    col_plot, col_empty = st.columns([1, 1])  # 50% | 50%
+
+    with col_plot:
+        raw_data_plotter(setA, setB, var1)
 
     if st.button("Analyse uitvoeren"):
         normalA, pA = normality_check(setA, 0.05)
@@ -129,7 +114,7 @@ if uploaded_file:
         ]
 
 # ==============================
-#   TABLE SECTION (WIDE)
+#   TABLE SECTION (FULL WIDTH)
 # ==============================
 
 st.markdown("### Tabel 1: Normality, SRM, Medians")
