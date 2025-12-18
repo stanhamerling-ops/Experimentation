@@ -5,31 +5,30 @@ import matplotlib.pyplot as plt
 from scipy import stats
 
 # ==============================
-#   CSS FOR TABLE SECTION ONLY
+#   GLOBAL CSS
 # ==============================
+
 st.markdown("""
-    <style>
-    /* Alleen de tabellen-sectie breed maken */
-    .wide-table-section {
-        max-width: 95% !important;
-        margin-left: auto !important;
-        margin-right: auto !important;
-    }
+<style>
 
-    /* Dataframes binnen die sectie 100% breed */
-    .wide-table-section .stDataFrame {
-        width: 100% !important;
-    }
+/* Maak de volledige centrale content breder */
+.main > div {
+    max-width: 95% !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+}
 
-    /* Kolommen auto-fit */
-    .wide-table-section [data-testid="column-header"] {
-        flex: 1 !important;
-    }
+/* Zorg dat dataframes altijd 100% breed renderen */
+[data-testid="stDataFrame"] {
+    width: 100% !important;
+}
 
-    .wide-table-section [data-testid="data-cell"] {
-        flex: 1 !important;
-    }
-    </style>
+/* Kolombreedtes beter laten spreiden */
+[data-testid="stDataFrame"] [data-testid="column-header"],
+[data-testid="stDataFrame"] [data-testid="data-cell"] {
+    flex: 1 !important;
+}
+</style>
 """, unsafe_allow_html=True)
 
 # ==============================
@@ -48,7 +47,6 @@ required_cols_table2 = [
     "Impact (%)", "Mann–Whitney p-value"
 ]
 
-# Correcte initialisatie
 if "table1" not in st.session_state or list(st.session_state.table1.columns) != required_cols_table1:
     st.session_state.table1 = pd.DataFrame(columns=required_cols_table1)
 
@@ -83,7 +81,7 @@ def MWW_test(sampleA, sampleB):
     return p
 
 # ==============================
-#   UI — SETTINGS/GRAPH SECTION (top)
+#   UI — SETTINGS/GRAPH SECTION
 # ==============================
 
 st.title("Non-Parametric Tester (A/B Statistical Tool)")
@@ -131,10 +129,8 @@ if uploaded_file:
         ]
 
 # ==============================
-#   TABLE SECTION (FULL WIDTH BELOW)
+#   TABLE SECTION (WIDE)
 # ==============================
-
-st.markdown('<div class="wide-table-section">', unsafe_allow_html=True)
 
 st.markdown("### Tabel 1: Normality, SRM, Medians")
 st.dataframe(st.session_state.table1, use_container_width=True)
@@ -146,5 +142,3 @@ if st.button("Tabel resetten"):
     st.session_state.table1 = st.session_state.table1.iloc[0:0]
     st.session_state.table2 = st.session_state.table2.iloc[0:0]
     st.success("Tabellen leeggemaakt!")
-
-st.markdown('</div>', unsafe_allow_html=True)
