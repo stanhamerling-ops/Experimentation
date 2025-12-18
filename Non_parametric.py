@@ -21,7 +21,7 @@ required_cols_table1 = [
 
 required_cols_table2 = [
     "KPI", "Control", "Variant",
-    "Control", "Variant",
+    "Avg. Control", "Avg. Variant",
     "Impact (%)", "p-value"
 ]
 
