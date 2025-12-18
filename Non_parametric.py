@@ -14,15 +14,15 @@ st.set_page_config(layout="wide")
 # ==============================
 
 required_cols_table1 = [
-    "Metric", "Variant A", "Variant B",
-    "Normality A", "Normality B",
-    "SRM Result", "Median A", "Median B"
+    "KPI", "Control", "Variant",
+    "Normality Control", "Normality Variant",
+    "SRM Result", "Median Control", "Median Variant"
 ]
 
 required_cols_table2 = [
-    "Metric", "Variant A", "Variant B",
-    "Average A", "Average B",
-    "Impact (%)", "Mann–Whitney p-value"
+    "KPI", "Control", "Variant",
+    "Control", "Variant",
+    "Impact (%)", "p-value"
 ]
 
 if "table1" not in st.session_state or list(st.session_state.table1.columns) != required_cols_table1:
@@ -129,10 +129,10 @@ if uploaded_file:
 #   TABLE SECTION
 # ==============================
 
-st.markdown("### Tabel 1: Normality, SRM, Medians")
+st.markdown("### Analyse checks")
 st.dataframe(st.session_state.table1, use_container_width=True)
 
-st.markdown("### Tabel 2: Averages, Impact, Mann–Whitney")
+st.markdown("### Impact")
 st.dataframe(st.session_state.table2, use_container_width=True)
 
 if st.button("Tabel resetten"):
