@@ -161,5 +161,6 @@ if st.button("Tabel resetten"):
 # ==============================
 #   AIRTABLE UI (FROM airtable.py)
 # ==============================
-from airtable import airtable_test_ui
-airtable_test_ui()
+# from airtable import airtable_test_ui
+# airtable_test_ui()
+# ==============================
