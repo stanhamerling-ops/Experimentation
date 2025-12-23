@@ -24,6 +24,7 @@ def airtable_test_ui():
     # Toon debug info
     st.write("🔑 Base ID:", BASE_ID)
     st.write("📄 Table Name:", TABLE_NAME)
+    st.write("DEBUG TOKEN LENGTH:", len(API_KEY))
 
     # ==============================
     # 1. CHECK: API TOKEN VALID?
