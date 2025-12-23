@@ -3,7 +3,6 @@ import streamlit as st
 from pyairtable import Table
 
 def airtable_test_ui():
-    st.title("Airtable Test Connectie Checker")
 
     # Verbind met Airtable via Cloud Secrets
     API_KEY = st.secrets["AIRTABLE_API_KEY"]
@@ -14,6 +13,10 @@ def airtable_test_ui():
     table = Table(API_KEY, BASE_ID, TABLE_NAME)
 
     st.subheader("📡 Airtable Verbinding Test")
+
+    st.title("Airtable Test Connectie Checker")
+    st.write("Base ID:", BASE_ID)
+    st.write("Table Name:", TABLE_NAME)
 
     # Probeer records op te halen
     try:
