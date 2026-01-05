@@ -14,17 +14,17 @@ st.set_page_config(layout="wide")
 # ==============================
 
 required_cols_table1 = [
-    "KPI", "Control", "Variant",
-    "N Control", "N Variant",
-    "Norm. Control", "Norm. Variant",
-    "SRM Result", "Med. Control", "Med. Variant"
+    "KPI", "Control", "Variant",
+    "N Control", "N Variant",
+    "Norm. Control", "Norm. Variant",
+    "SRM Result", "Med. Control", "Med. Variant"
 ]
 
 required_cols_table2 = [
-    "KPI", "Control", "Variant",
-    "N Control", "N Variant",
-    "Avg. Control", "Avg. Variant",
-    "Impact (%)", "p-value"
+    "KPI", "Control", "Variant",
+    "N Control", "N Variant",
+    "Avg. Control", "Avg. Variant",
+    "Impact (%)", "p-value"
 ]
 
 if "table1" not in st.session_state or list(st.session_state.table1.columns) != required_cols_table1:
