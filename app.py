@@ -4,17 +4,13 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
 
-# ======================================
-#   PAGE CONFIG
-# ======================================
 st.set_page_config(layout="wide")
 
+# ====================================================
+# PAGINA 1 — Non-parametric calculator
+# ====================================================
 
-# ======================================
-#   PAGINA 1 — Non-parametric tester
-# ======================================
-
-def page_nonparametric():
+def page_calculator():
 
     required_cols_table1 = []
     required_cols_table2 = []
@@ -112,26 +108,26 @@ def page_nonparametric():
         st.success("Tabellen leeggemaakt!")
 
 
-# ======================================
-#   PAGINA 2 — Lege pagina
-# ======================================
+# ====================================================
+# PAGINA 2 — Lege pagina
+# ====================================================
 
 def page_empty():
-    st.title("Pagina 2 (Lege pagina)")
-    st.write("Deze pagina is nog leeg. Je kunt hier later inhoud toevoegen.")
+    st.title("Pagina 2 — Leeg")
+    st.write("Deze pagina is nog leeg. Voeg hier later inhoud toe.")
 
 
-# ======================================
-#   NAVIGATIE IN SIDEBAR
-# ======================================
+# ====================================================
+# NAVIGATIE VIA NIEUWE STREAMLIT API
+# ====================================================
 
-pages = {
-    "Calculator (Pagina 1)": page_nonparametric,
-    "Lege pagina (Pagina 2)": page_empty
-}
+pages = [
+    st.Page(page_calculator, title="Non‑Parametric Calculator"),
+    st.Page(page_empty, title="Lege Pagina")
+]
 
-nav = st.navigation(pages, position="sidebar", expanded=True)
-nav.run()
+pg = st.navigation(pages, position="sidebar", expanded=True)
+pg.run()
 
 # ==============================
 #   AIRTABLE UI (FROM airtable.py)
