@@ -3,17 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
-import os
-
-st.title("DEBUG — Welke bestanden ziet Streamlit?")
-
-files = os.listdir(".")
-st.write("Bestanden in root directory:", files)
-
-if "pages" in files:
-    st.write("Pages folder bestaat — inhoud:", os.listdir("pages"))
-else:
-    st.error("⚠️ Pages folder bestaat NIET")
 
 # ==============================
 #   PAGE CONFIG (WIDE MODE)
