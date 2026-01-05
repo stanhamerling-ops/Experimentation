@@ -4,26 +4,17 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import stats
 
-import streamlit as st
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from scipy import stats
-
 # ======================================
 #   PAGE CONFIG
 # ======================================
 st.set_page_config(layout="wide")
 
+
 # ======================================
-#   PAGES DEFINITIE
+#   PAGINA 1 — Non-parametric tester
 # ======================================
 
 def page_nonparametric():
-
-    # ==============================
-    #   INIT STATE (schema check)
-    # ==============================
 
     required_cols_table1 = []
     required_cols_table2 = []
@@ -36,10 +27,6 @@ def page_nonparametric():
 
     if "show_plot" not in st.session_state:
         st.session_state.show_plot = False
-
-    # ==============================
-    # FUNCTIONS
-    # ==============================
 
     def raw_data_plotter(setA, setB, variable):
         fig, ax = plt.subplots(figsize=(6, 3))
@@ -54,16 +41,11 @@ def page_nonparametric():
         return ("normal" if p > alpha else "not normal", p)
 
     def SRM_check(sample_A, sample_B, alpha):
-        # placeholder
         return "OK"
 
     def MWW_test(sampleA, sampleB):
         U, p = stats.mannwhitneyu(sampleA, sampleB)
         return p
-
-    # ==============================
-    #   UI — SETTINGS/GRAPH SECTION
-    # ==============================
 
     st.title("Non-Parametric Tester (A/B Statistical Tool)")
 
@@ -85,9 +67,6 @@ def page_nonparametric():
         setA = data[var1][data[variantcolumn].astype(str) == varA].fillna(0)
         setB = data[var1][data[variantcolumn].astype(str) == varB].fillna(0)
 
-        # ==============================
-        #   RAW DATA PLOT + TOGGLE BUTTON
-        # ==============================
         st.subheader("Raw Data Plot")
 
         if st.button("📊 Grafiek tonen / verbergen"):
@@ -98,9 +77,6 @@ def page_nonparametric():
             with col_plot:
                 raw_data_plotter(setA, setB, var1)
 
-        # ==============================
-        #   ANALYSE
-        # ==============================
         if st.button("Analyse uitvoeren"):
             normalA, pA = normality_check(setA, 0.05)
             normalB, pB = normality_check(setB, 0.05)
@@ -114,8 +90,8 @@ def page_nonparametric():
             mw_p = MWW_test(setA, setB)
 
             st.session_state.table1.loc[len(st.session_state.table1)] = [
-                var1, varA, varB, len(setA), len(setB), normalA, normalB,
-                srm_result, medA, medB
+                var1, varA, varB, len(setA), len(setB),
+                normalA, normalB, srm_result, medA, medB
             ]
 
             st.session_state.table2.loc[len(st.session_state.table2)] = [
@@ -123,10 +99,6 @@ def page_nonparametric():
                 round(avgA, 3), round(avgB, 3),
                 round(percent_impact, 2), round(mw_p, 4)
             ]
-
-    # ==============================
-    #   TABLE SECTION
-    # ==============================
 
     st.markdown("### Analyse checks")
     st.dataframe(st.session_state.table1, use_container_width=True)
@@ -141,15 +113,25 @@ def page_nonparametric():
 
 
 # ======================================
-#   PAGINA NAVIGATIE (SIDEBAR)
+#   PAGINA 2 — Lege pagina
+# ======================================
+
+def page_empty():
+    st.title("Pagina 2 (Lege pagina)")
+    st.write("Deze pagina is nog leeg. Je kunt hier later inhoud toevoegen.")
+
+
+# ======================================
+#   NAVIGATIE IN SIDEBAR
 # ======================================
 
 pages = {
-    "Pagina 1 — Non‑Parametric Tester": page_nonparametric
+    "Calculator (Pagina 1)": page_nonparametric,
+    "Lege pagina (Pagina 2)": page_empty
 }
 
 nav = st.navigation(pages, position="sidebar", expanded=True)
-nav.run()success("Tabellen leeggemaakt!")
+nav.run()
 
 # ==============================
 #   AIRTABLE UI (FROM airtable.py)
