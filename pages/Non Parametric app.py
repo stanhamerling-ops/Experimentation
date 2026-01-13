@@ -74,9 +74,11 @@ uploaded_file = st.file_uploader("Upload your CSV file")
 
 if uploaded_file:
     data = pd.read_csv(uploaded_file)
-    st.write("Columns found:", list(data.columns))
+    st.markdown("**Columns found**")
+    st.markdown("\n".join([f"- {col}" for col in data.columns]))
 
-    variantcolumn = st.selectbox("Select the variant column", data.columns)
+    default_index = 2 if len(data.columns) >= 3 else 0
+    variantcolumn = st.selectbox("Select the variant column", data.columns, index=default_index)
     variants = data[variantcolumn].astype(str).unique()
 
     varA = st.selectbox("Select Variant A", variants)
