@@ -4,17 +4,6 @@ import streamlit as st
 import pandas as pd
 
 # =====================================================
-#   FIX ROOT PATH
-# =====================================================
-
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-STATISTICS_DIR = os.path.join(ROOT_DIR, "statistics")
-if STATISTICS_DIR not in sys.path:
-    sys.path.append(STATISTICS_DIR)
-
-from bayesian_stats import prob_variant_beats_control
-
-# =====================================================
 #   PAGE CONFIG
 # =====================================================
 
