@@ -1,15 +1,14 @@
-# pages/Non parametric calculator.py
-
 import os
 import sys
-
-# ✅ voeg project root toe
-ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(os.path.join(ROOT_DIR, "statistics"))
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+
+# ==============================
+# PATH SETUP
+# ==============================
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(os.path.join(ROOT_DIR, "statistics"))
 
 from non_parametric_stats import run_non_parametric_analysis
 
@@ -24,14 +23,12 @@ st.title("Non‑Parametric Calculator")
 # ==============================
 cols_checks = [
     "KPI", "Control", "Variant",
-    "N Control", "N Variant",
     "Norm Control", "Norm Variant",
     "SRM", "Median Control", "Median Variant"
 ]
 
 cols_impact = [
     "KPI", "Control", "Variant",
-    "N Control", "N Variant",
     "Avg Control", "Avg Variant",
     "Impact (%)", "p-value"
 ]
@@ -67,12 +64,25 @@ file = st.file_uploader("Upload CSV")
 if file:
     df = pd.read_csv(file)
 
-    variant_col = st.selectbox("Variant column", df.columns)
+    # kolommen tonen
+    st.markdown("**Gevonden kolommen:**")
+    st.markdown("\n".join([f"- {col}" for col in df.columns]))
 
+    # variant default = 3de kolom
+    default_variant_index = 2 if len(df.columns) >= 3 else 0
+    variant_col = st.selectbox(
+        "Variant column",
+        df.columns,
+        index=default_variant_index
+    )
+
+    numeric_cols = df.select_dtypes(include=["int", "float"]).columns.tolist()
+    default_metric_index = 2 if len(numeric_cols) >= 3 else 0
     metric_col = st.selectbox(
         "Metric column",
-        df.select_dtypes(include=["int", "float"]).columns
-    )
+        numeric_cols,
+        index=default_metric_index
+)
 
     variants = df[variant_col].astype(str).unique()
     control = st.selectbox("Control", variants)
@@ -94,8 +104,6 @@ if file:
             metric_col,
             control,
             variant,
-            r["nA"],
-            r["nB"],
             r["normalA"],
             r["normalB"],
             r["srm"],
@@ -107,12 +115,10 @@ if file:
             metric_col,
             control,
             variant,
-            r["nA"],
-            r["nB"],
-            round(r["avgA"], 3),
-            round(r["avgB"], 3),
-            round(r["impact"], 2),
-            round(r["p_value"], 4)
+            r["avgA"],
+            r["avgB"],
+            r["impact"],
+            r["p_value"]
         ]
 
 

@@ -1,8 +1,5 @@
-# statistics/non_parametric_stats.py
-
 import numpy as np
 from scipy import stats
-
 
 def normality_check(sample, alpha=0.05):
     if len(sample) < 8:
@@ -24,21 +21,29 @@ def mann_whitney_test(sample_a, sample_b):
 
 
 def run_non_parametric_analysis(set_a, set_b, alpha=0.05):
+    # ---------- RAW CALCULATIONS ----------
     avg_a = set_a.mean()
     avg_b = set_b.mean()
+    med_a = set_a.median()
+    med_b = set_b.median()
 
-    impact = ((avg_b - avg_a) / avg_a) * 100 if avg_a != 0 else np.inf
+    impact_raw = (avg_b - avg_a) / avg_a if avg_a != 0 else np.nan
+    impact_pct = impact_raw * 100
+    p_value = mann_whitney_test(set_a, set_b)
 
+    # ---------- FORMATTED OUTPUT ----------
     return {
         "nA": len(set_a),
         "nB": len(set_b),
         "normalA": normality_check(set_a, alpha)[0],
         "normalB": normality_check(set_b, alpha)[0],
         "srm": srm_check(set_a, set_b, alpha),
-        "avgA": avg_a,
-        "avgB": avg_b,
-        "medA": round(set_a.median(), 1),
-        "medB": round(set_b.median(), 1),
-        "impact": impact,
-        "p_value": mann_whitney_test(set_a, set_b),
+
+        # formatting rules
+        "avgA": round(avg_a, 2),
+        "avgB": round(avg_b, 2),
+        "medA": round(med_a, 2),
+        "medB": round(med_b, 2),
+        "impact": f"{round(impact_pct, 1)}%",
+        "p_value": round(p_value, 3),
     }
