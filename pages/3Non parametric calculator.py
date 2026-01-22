@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(os.path.join(ROOT_DIR, "statistics"))
 
-from non_parametric_stats import run_non_parametric_analysis
+from non_parametric_stats import analyze_with_zeros, analyze_no_zeros
 
 # ==============================
 # PAGE CONFIG
@@ -23,7 +23,7 @@ st.title("Non‑Parametric Calculator")
 # ==============================
 cols_checks = [
     "KPI", "Control", "Variant",
-    "Norm Control", "Norm Variant",
+    "Normality Control", "Normality Variant",
     "SRM", "Median Control", "Median Variant"
 ]
 
@@ -64,25 +64,27 @@ file = st.file_uploader("Upload CSV")
 if file:
     df = pd.read_csv(file)
 
-    # kolommen tonen
     st.markdown("**Gevonden kolommen:**")
     st.markdown("\n".join([f"- {col}" for col in df.columns]))
 
-    # variant default = 3de kolom
-    default_variant_index = 2 if len(df.columns) >= 3 else 0
     variant_col = st.selectbox(
-        "Variant column",
+        "Variant kolom",
         df.columns,
-        index=default_variant_index
+        index=2 if len(df.columns) >= 3 else 0
     )
 
     numeric_cols = df.select_dtypes(include=["int", "float"]).columns.tolist()
-    default_metric_index = 2 if len(numeric_cols) >= 3 else 0
     metric_col = st.selectbox(
-        "Metric column",
+        "Metric kolom",
         numeric_cols,
-        index=default_metric_index
-)
+        index=2 if len(numeric_cols) >= 3 else 0
+    )
+
+    statistic_type = st.selectbox(
+        "0-waardes",
+        ["Waardes uitsluiten", "Waardes opnemen"],
+        index=0
+    )
 
     variants = df[variant_col].astype(str).unique()
     control = st.selectbox("Control", variants)
@@ -98,7 +100,10 @@ if file:
         plot_raw(set_a, set_b, metric_col)
 
     if st.button("Analyse uitvoeren"):
-        r = run_non_parametric_analysis(set_a, set_b)
+        if statistic_type == "Waardes uitsluiten":
+            r = analyze_no_zeros(set_a, set_b)
+        else:
+            r = analyze_with_zeros(set_a, set_b)
 
         st.session_state.checks.loc[len(st.session_state.checks)] = [
             metric_col,
