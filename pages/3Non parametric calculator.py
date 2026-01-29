@@ -16,7 +16,7 @@ from non_parametric_stats import analyze_with_zeros, analyze_no_zeros
 # PAGE CONFIG
 # ==============================
 st.set_page_config(layout="wide")
-st.title("Non‑Parametric Calculator")
+st.title("Non-Parametric Calculator")
 
 # ==============================
 # SESSION STATE
@@ -44,6 +44,17 @@ if "show_plot" not in st.session_state:
 
 
 # ==============================
+# HELPERS
+# ==============================
+def column_conclusion(series):
+    if pd.api.types.is_integer_dtype(series):
+        return "✅ integer"
+    if pd.api.types.is_float_dtype(series):
+        return "✅ float"
+    return f"❌ {series.dtype}"
+
+
+# ==============================
 # PLOT
 # ==============================
 def plot_raw(a, b, label):
@@ -64,9 +75,21 @@ file = st.file_uploader("Upload CSV")
 if file:
     df = pd.read_csv(file)
 
-    st.markdown("**Gevonden kolommen:**")
-    st.markdown("\n".join([f"- {col}" for col in df.columns]))
+    # ==============================
+    # KOLOMCONTROLE (st.table → geen scroll)
+    # ==============================
+    st.markdown("### Kolomcontrole")
 
+    col_check = pd.DataFrame({
+        "Kolom": df.columns,
+        "Conclusie": [column_conclusion(df[col]) for col in df.columns]
+    })
+
+    st.table(col_check)
+
+    # ==============================
+    # ANALYSE SELECTIE
+    # ==============================
     variant_col = st.selectbox(
         "Variant kolom",
         df.columns,
@@ -74,6 +97,7 @@ if file:
     )
 
     numeric_cols = df.select_dtypes(include=["int", "float"]).columns.tolist()
+
     metric_col = st.selectbox(
         "Metric kolom",
         numeric_cols,
