@@ -23,12 +23,14 @@ st.title("Non-Parametric Calculator")
 # ==============================
 cols_checks = [
     "KPI", "Control", "Variant",
-    "Normality Control", "Normality Variant",
-    "SRM", "Median Control", "Median Variant"
+    "Norm. Control", "Norm. Variant",
+    "SRM",
+    "SD Control", "SD Variant"
 ]
 
 cols_impact = [
     "KPI", "Control", "Variant",
+    "Samp. Control", "Samp. Variant",
     "Avg Control", "Avg Variant",
     "Impact (%)", "p-value"
 ]
@@ -42,7 +44,6 @@ if "impact" not in st.session_state:
 if "show_plot" not in st.session_state:
     st.session_state.show_plot = False
 
-
 # ==============================
 # HELPERS
 # ==============================
@@ -53,6 +54,29 @@ def column_conclusion(series):
         return "✅ float"
     return f"❌ {series.dtype}"
 
+def sd(series):
+    return round(series.std(ddof=1), 2)
+
+def safe_round(value, decimals=2):
+    if isinstance(value, (int, float)):
+        return round(value, decimals)
+    return value
+
+def normalize_normality(value):
+    if isinstance(value, bool):
+        return "normal" if value else "not-normal"
+    if isinstance(value, str):
+        v = value.lower()
+        if "not" in v or "false" in v:
+            return "not-normal"
+        if "normal" in v or "true" in v:
+            return "normal"
+    return value
+
+def get_sample(series, exclude_zeros=True):
+    if exclude_zeros:
+        return series[series != 0]
+    return series
 
 # ==============================
 # PLOT
@@ -66,7 +90,6 @@ def plot_raw(a, b, label):
     ax.legend()
     st.pyplot(fig)
 
-
 # ==============================
 # UI
 # ==============================
@@ -76,7 +99,7 @@ if file:
     df = pd.read_csv(file)
 
     # ==============================
-    # KOLOMCONTROLE (st.table → geen scroll)
+    # KOLOMCONTROLE
     # ==============================
     st.markdown("### Kolomcontrole")
 
@@ -110,12 +133,22 @@ if file:
         index=0
     )
 
+    exclude_zeros = statistic_type == "Waardes uitsluiten"
+
     variants = df[variant_col].astype(str).unique()
     control = st.selectbox("Control", variants)
     variant = st.selectbox("Variant", variants)
 
-    set_a = df.loc[df[variant_col].astype(str) == control, metric_col].fillna(0)
-    set_b = df.loc[df[variant_col].astype(str) == variant, metric_col].fillna(0)
+    raw_a = df.loc[
+        df[variant_col].astype(str) == control, metric_col
+    ].fillna(0)
+
+    raw_b = df.loc[
+        df[variant_col].astype(str) == variant, metric_col
+    ].fillna(0)
+
+    set_a = get_sample(raw_a, exclude_zeros)
+    set_b = get_sample(raw_b, exclude_zeros)
 
     if st.button("📊 Grafiek tonen / verbergen"):
         st.session_state.show_plot = not st.session_state.show_plot
@@ -123,33 +156,37 @@ if file:
     if st.session_state.show_plot:
         plot_raw(set_a, set_b, metric_col)
 
+    # ==============================
+    # ANALYSE
+    # ==============================
     if st.button("Analyse uitvoeren"):
-        if statistic_type == "Waardes uitsluiten":
-            r = analyze_no_zeros(set_a, set_b)
+        if exclude_zeros:
+            r = analyze_no_zeros(raw_a, raw_b)
         else:
-            r = analyze_with_zeros(set_a, set_b)
+            r = analyze_with_zeros(raw_a, raw_b)
 
         st.session_state.checks.loc[len(st.session_state.checks)] = [
             metric_col,
             control,
             variant,
-            r["normalA"],
-            r["normalB"],
+            normalize_normality(r["normalA"]),
+            normalize_normality(r["normalB"]),
             r["srm"],
-            r["medA"],
-            r["medB"]
+            sd(set_a),
+            sd(set_b)
         ]
 
         st.session_state.impact.loc[len(st.session_state.impact)] = [
             metric_col,
             control,
             variant,
-            r["avgA"],
-            r["avgB"],
-            r["impact"],
-            r["p_value"]
+            len(set_a),
+            len(set_b),
+            safe_round(r["avgA"], 2),
+            safe_round(r["avgB"], 2),
+            safe_round(r["impact"], 2),
+            safe_round(r["p_value"], 4)
         ]
-
 
 # ==============================
 # OUTPUT
