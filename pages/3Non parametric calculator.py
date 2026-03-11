@@ -1,5 +1,6 @@
 import os
 import sys
+import re
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -22,17 +23,26 @@ st.title("Non-Parametric Calculator")
 # SESSION STATE
 # ==============================
 cols_checks = [
-    "KPI", "Control", "Variant",
-    "Norm. Control", "Norm. Variant",
+    "Metric",
+    "Control",
+    "Variant",
+    "Normality (C)",
+    "Normality (V)",
     "SRM",
-    "SD Control", "SD Variant"
+    "St. deviation (C)",
+    "St. deviation (V)"
 ]
 
 cols_impact = [
-    "KPI", "Control", "Variant",
-    "Samp. Control", "Samp. Variant",
-    "Avg Control", "Avg Variant",
-    "Impact (%)", "p-value"
+    "Metric",
+    "Control",
+    "Variant",
+    "Sample (C)",
+    "Sample (V)",
+    "Average (C)",
+    "Average (V)",
+    "Impact (%)",
+    "P-value"
 ]
 
 if "checks" not in st.session_state:
@@ -44,128 +54,276 @@ if "impact" not in st.session_state:
 if "show_plot" not in st.session_state:
     st.session_state.show_plot = False
 
+if "df" not in st.session_state:
+    st.session_state.df = None
+
+if "transform_log" not in st.session_state:
+    st.session_state.transform_log = {}
+
 # ==============================
 # HELPERS
 # ==============================
+def format_rows(n):
+
+    if n >= 1_000_000:
+        return f"{round(n/1_000_000)}M"
+
+    if n >= 1_000:
+        return f"{round(n/1_000)}K"
+
+    return str(n)
+
+
 def column_conclusion(series):
+
     if pd.api.types.is_integer_dtype(series):
         return "✅ integer"
+
     if pd.api.types.is_float_dtype(series):
         return "✅ float"
+
     return f"❌ {series.dtype}"
 
-def sd(series):
-    return round(series.std(ddof=1), 2)
 
-def safe_round(value, decimals=2):
-    if isinstance(value, (int, float)):
-        return round(value, decimals)
+def sd(series):
+    return round(series.std(ddof=1),2)
+
+
+def safe_round(value,decimals=2):
+
+    if isinstance(value,(int,float)):
+        return round(value,decimals)
+
     return value
+
 
 def normalize_normality(value):
-    if isinstance(value, bool):
+
+    if isinstance(value,bool):
         return "normal" if value else "not-normal"
-    if isinstance(value, str):
-        v = value.lower()
+
+    if isinstance(value,str):
+
+        v=value.lower()
+
         if "not" in v or "false" in v:
             return "not-normal"
+
         if "normal" in v or "true" in v:
             return "normal"
+
     return value
 
-def get_sample(series, exclude_zeros=True):
+
+def get_sample(series,exclude_zeros=True):
+
     if exclude_zeros:
-        return series[series != 0]
+        return series[series!=0]
+
     return series
+
+
+# ==============================
+# DETECT TRANSFORMABLE
+# ==============================
+def needs_transformation(series):
+
+    if series.dtype!="object":
+        return False
+
+    sample = series.dropna().astype(str).head(50)
+
+    pattern=r"[€$£]|,|\d+\.\d{3}"
+
+    for v in sample:
+        if re.search(pattern,v):
+            return True
+
+    return False
+
+
+# ==============================
+# CLEAN NUMERIC
+# ==============================
+def clean_numeric(series):
+
+    original=series.astype(str)
+
+    cleaned=original.str.strip()
+
+    cleaned=cleaned.str.replace(r"[€$£]","",regex=True)
+
+    cleaned=cleaned.str.replace(" ","")
+
+    cleaned=cleaned.str.replace(r"\.(?=\d{3},)","",regex=True)
+
+    cleaned=cleaned.str.replace(",",".")    
+
+    numeric=pd.to_numeric(cleaned,errors="coerce")
+
+    changed=(original!=cleaned).sum()
+
+    pct=round((changed/len(series))*100,1)
+
+    return numeric,pct
+
 
 # ==============================
 # PLOT
 # ==============================
-def plot_raw(a, b, label):
-    fig, ax = plt.subplots(figsize=(5, 3))
-    ax.hist(a, bins=100, alpha=0.6, label="Control")
-    ax.hist(b, bins=100, alpha=0.6, label="Variant")
+def plot_raw(a,b,label):
+
+    fig,ax=plt.subplots(figsize=(5,3))
+
+    ax.hist(a,bins=100,alpha=0.6,label="Control")
+    ax.hist(b,bins=100,alpha=0.6,label="Variant")
+
     ax.set_xlabel(label)
     ax.set_title("Raw distribution")
+
     ax.legend()
+
     st.pyplot(fig)
 
+
 # ==============================
-# UI
+# FILE UPLOAD
 # ==============================
-file = st.file_uploader("Upload CSV")
+file=st.file_uploader("Upload CSV")
 
 if file:
-    df = pd.read_csv(file)
+
+    if st.session_state.df is None:
+        st.session_state.df=pd.read_csv(file)
+
+    df=st.session_state.df
+
+    st.caption(f"{format_rows(len(df))} rows")
 
     # ==============================
     # KOLOMCONTROLE
     # ==============================
     st.markdown("### Kolomcontrole")
 
-    col_check = pd.DataFrame({
-        "Kolom": df.columns,
-        "Conclusie": [column_conclusion(df[col]) for col in df.columns]
-    })
+    box = st.container(border=True)
 
-    st.table(col_check)
+    with box:
+
+        h1,h2,h3,h4 = st.columns([3,2,1.5,3])
+
+        h1.markdown("**Kolom**")
+        h2.markdown("**Type**")
+        h3.markdown("**Fix**")
+        h4.markdown("**Status**")
+
+        for col in df.columns:
+
+            c1,c2,c3,c4 = st.columns([3,2,1.5,3])
+
+            c1.write(col)
+
+            c2.write(column_conclusion(df[col]))
+
+            transformed = col in st.session_state.transform_log
+            transformable = needs_transformation(df[col])
+
+            if transformable:
+
+                if c3.button(
+                    "Fix",
+                    key=f"transform_{col}",
+                    disabled=transformed
+                ):
+
+                    new_col,pct=clean_numeric(df[col])
+
+                    df[col]=new_col
+                    st.session_state.df=df
+
+                    st.session_state.transform_log[col]=pct
+
+                    st.rerun()
+
+            if col in st.session_state.transform_log:
+
+                pct = st.session_state.transform_log[col]
+
+                c4.markdown(
+                    f"<span style='color:green'>✓ {pct}% aangepast</span>",
+                    unsafe_allow_html=True
+                )
 
     # ==============================
-    # ANALYSE SELECTIE
+    # ANALYSE INSTELLINGEN
     # ==============================
-    variant_col = st.selectbox(
-        "Variant kolom",
-        df.columns,
-        index=2 if len(df.columns) >= 3 else 0
-    )
+    st.markdown("### Analyse instellingen")
 
-    numeric_cols = df.select_dtypes(include=["int", "float"]).columns.tolist()
+    settings_box = st.container(border=True)
 
-    metric_col = st.selectbox(
-        "Metric kolom",
-        numeric_cols,
-        index=2 if len(numeric_cols) >= 3 else 0
-    )
+    with settings_box:
 
-    statistic_type = st.selectbox(
-        "0-waardes",
-        ["Waardes uitsluiten", "Waardes opnemen"],
-        index=0
-    )
+        col_left,col_right = st.columns(2)
 
-    exclude_zeros = statistic_type == "Waardes uitsluiten"
+        with col_left:
+            variant_col=st.selectbox(
+                "Variant kolom",
+                df.columns
+            )
 
-    variants = df[variant_col].astype(str).unique()
-    control = st.selectbox("Control", variants)
-    variant = st.selectbox("Variant", variants)
+        numeric_cols=df.select_dtypes(include=["int","float"]).columns.tolist()
 
-    raw_a = df.loc[
-        df[variant_col].astype(str) == control, metric_col
+        with col_right:
+            metric_col=st.selectbox(
+                "Metric kolom",
+                numeric_cols if numeric_cols else df.columns
+            )
+
+        statistic_type=st.selectbox(
+            "0-waardes",
+            ["Waardes uitsluiten","Waardes opnemen"],
+            index=0
+        )
+
+        variants=df[variant_col].astype(str).unique()
+
+        control_col,variant_col_select = st.columns(2)
+
+        with control_col:
+            control=st.selectbox("Control",variants)
+
+        with variant_col_select:
+            variant=st.selectbox("Variant",variants)
+
+    exclude_zeros=statistic_type=="Waardes uitsluiten"
+
+    raw_a=df.loc[
+        df[variant_col].astype(str)==control,metric_col
     ].fillna(0)
 
-    raw_b = df.loc[
-        df[variant_col].astype(str) == variant, metric_col
+    raw_b=df.loc[
+        df[variant_col].astype(str)==variant,metric_col
     ].fillna(0)
 
-    set_a = get_sample(raw_a, exclude_zeros)
-    set_b = get_sample(raw_b, exclude_zeros)
+    set_a=get_sample(raw_a,exclude_zeros)
+    set_b=get_sample(raw_b,exclude_zeros)
 
     if st.button("📊 Grafiek tonen / verbergen"):
-        st.session_state.show_plot = not st.session_state.show_plot
+        st.session_state.show_plot=not st.session_state.show_plot
 
     if st.session_state.show_plot:
-        plot_raw(set_a, set_b, metric_col)
+        plot_raw(set_a,set_b,metric_col)
 
     # ==============================
     # ANALYSE
     # ==============================
     if st.button("Analyse uitvoeren"):
-        if exclude_zeros:
-            r = analyze_no_zeros(raw_a, raw_b)
-        else:
-            r = analyze_with_zeros(raw_a, raw_b)
 
-        st.session_state.checks.loc[len(st.session_state.checks)] = [
+        if exclude_zeros:
+            r=analyze_no_zeros(raw_a,raw_b)
+        else:
+            r=analyze_with_zeros(raw_a,raw_b)
+
+        st.session_state.checks.loc[len(st.session_state.checks)]=[
             metric_col,
             control,
             variant,
@@ -176,28 +334,41 @@ if file:
             sd(set_b)
         ]
 
-        st.session_state.impact.loc[len(st.session_state.impact)] = [
+        st.session_state.impact.loc[len(st.session_state.impact)]=[
             metric_col,
             control,
             variant,
             len(set_a),
             len(set_b),
-            safe_round(r["avgA"], 2),
-            safe_round(r["avgB"], 2),
-            safe_round(r["impact"], 2),
-            safe_round(r["p_value"], 4)
+            safe_round(r["avgA"],2),
+            safe_round(r["avgB"],2),
+            safe_round(r["impact"],2),
+            safe_round(r["p_value"],4)
         ]
 
 # ==============================
 # OUTPUT
 # ==============================
 st.subheader("Analyse checks")
-st.dataframe(st.session_state.checks, use_container_width=True)
+
+st.dataframe(
+    st.session_state.checks,
+    use_container_width=True
+)
 
 st.subheader("Impact")
-st.dataframe(st.session_state.impact, use_container_width=True)
+
+st.dataframe(
+    st.session_state.impact,
+    use_container_width=True
+)
 
 if st.button("Reset tabellen"):
-    st.session_state.checks = st.session_state.checks.iloc[0:0]
-    st.session_state.impact = st.session_state.impact.iloc[0:0]
+
+    st.session_state.checks=st.session_state.checks.iloc[0:0]
+
+    st.session_state.impact=st.session_state.impact.iloc[0:0]
+
+    st.session_state.transform_log={}
+
     st.success("Tabellen gereset ✅")
