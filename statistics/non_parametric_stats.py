@@ -28,6 +28,10 @@ def mann_whitney_test(sample_a, sample_b):
 # ANALYSIS — 0-WAARDES OPNEMEN
 # =====================================================
 def analyze_with_zeros(set_a, set_b, alpha=0.05):
+    """Compute statistics including any zero values present in the inputs.
+
+    The arrays are used as-is; no preprocessing is performed.
+    """
     avg_a = set_a.mean()
     avg_b = set_b.mean()
     med_a = set_a.median()
@@ -56,11 +60,15 @@ def analyze_with_zeros(set_a, set_b, alpha=0.05):
 # ANALYSIS — 0-WAARDES UITSLUITEN
 # =====================================================
 def analyze_no_zeros(set_a, set_b, alpha=0.05):
+    """Analyse samples that should already have zeroes removed.
+
+    The calling page applies `get_sample` before invoking this
+    function, so no further filtering occurs here.  Behaviour mirrors
+    `analyze_with_zeros` for consistency.
+    """
+
     set_a = np.array(set_a, dtype=float)
     set_b = np.array(set_b, dtype=float)
-
-    set_a = set_a[set_a != 0]
-    set_b = set_b[set_b != 0]
 
     avg_a = np.mean(set_a)
     avg_b = np.mean(set_b)

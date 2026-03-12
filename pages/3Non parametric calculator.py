@@ -318,12 +318,14 @@ if file:
     # ==============================
     if st.button("Analyse uitvoeren"):
 
+        # both helper functions now expect the samples that will actually
+        # be analysed; set_a/set_b already exclude zeroes when requested.
         if exclude_zeros:
-            r=analyze_no_zeros(raw_a,raw_b)
+            r = analyze_no_zeros(set_a, set_b)
         else:
-            r=analyze_with_zeros(raw_a,raw_b)
+            r = analyze_with_zeros(set_a, set_b)
 
-        st.session_state.checks.loc[len(st.session_state.checks)]=[
+        st.session_state.checks.loc[len(st.session_state.checks)] = [
             metric_col,
             control,
             variant,
@@ -334,16 +336,16 @@ if file:
             sd(set_b)
         ]
 
-        st.session_state.impact.loc[len(st.session_state.impact)]=[
+        st.session_state.impact.loc[len(st.session_state.impact)] = [
             metric_col,
             control,
             variant,
             len(set_a),
             len(set_b),
-            safe_round(r["avgA"],2),
-            safe_round(r["avgB"],2),
-            safe_round(r["impact"],2),
-            safe_round(r["p_value"],4)
+            safe_round(r["avgA"], 2),
+            safe_round(r["avgB"], 2),
+            safe_round(r["impact"], 2),
+            safe_round(r["p_value"], 4)
         ]
 
 # ==============================
