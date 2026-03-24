@@ -23,26 +23,16 @@ st.title("Non-Parametric Calculator")
 # SESSION STATE
 # ==============================
 cols_checks = [
-    "Metric",
-    "Control",
-    "Variant",
-    "Normality (C)",
-    "Normality (V)",
-    "SRM",
-    "St. deviation (C)",
-    "St. deviation (V)"
+    "Metric","Control","Variant",
+    "Normality (C)","Normality (V)",
+    "SRM","St. deviation (C)","St. deviation (V)"
 ]
 
 cols_impact = [
-    "Metric",
-    "Control",
-    "Variant",
-    "Sample (C)",
-    "Sample (V)",
-    "Average (C)",
-    "Average (V)",
-    "Impact (%)",
-    "P-value"
+    "Metric","Control","Variant",
+    "Sample (C)","Sample (V)",
+    "Average (C)","Average (V)",
+    "Impact (%)","P-value"
 ]
 
 if "checks" not in st.session_state:
@@ -64,64 +54,58 @@ if "transform_log" not in st.session_state:
 # HELPERS
 # ==============================
 def format_rows(n):
-
     if n >= 1_000_000:
         return f"{round(n/1_000_000)}M"
-
     if n >= 1_000:
         return f"{round(n/1_000)}K"
-
     return str(n)
 
-
 def column_conclusion(series):
-
     if pd.api.types.is_integer_dtype(series):
         return "✅ integer"
-
     if pd.api.types.is_float_dtype(series):
         return "✅ float"
-
     return f"❌ {series.dtype}"
-
 
 def sd(series):
     return round(series.std(ddof=1),2)
 
-
 def safe_round(value,decimals=2):
-
     if isinstance(value,(int,float)):
         return round(value,decimals)
-
     return value
-
 
 def normalize_normality(value):
-
     if isinstance(value,bool):
         return "normal" if value else "not-normal"
-
     if isinstance(value,str):
-
         v=value.lower()
-
         if "not" in v or "false" in v:
             return "not-normal"
-
         if "normal" in v or "true" in v:
             return "normal"
-
     return value
 
-
 def get_sample(series,exclude_zeros=True):
-
     if exclude_zeros:
         return series[series!=0]
-
     return series
 
+# ==============================
+# VALUE LOGGING
+# ==============================
+def value_distribution(series):
+
+    s = pd.to_numeric(series, errors="coerce")
+
+    total = len(s)
+    zeros = (s==0).sum()
+    valid = s.notna().sum()
+
+    return {
+        "total":int(total),
+        "zeros":int(zeros)
+    }
 
 # ==============================
 # DETECT TRANSFORMABLE
@@ -133,7 +117,7 @@ def needs_transformation(series):
 
     sample = series.dropna().astype(str).head(50)
 
-    pattern=r"[€$£]|,|\d+\.\d{3}"
+    pattern=r"[€$£]|,|\."
 
     for v in sample:
         if re.search(pattern,v):
@@ -141,32 +125,28 @@ def needs_transformation(series):
 
     return False
 
-
 # ==============================
-# CLEAN NUMERIC
+# CLEAN NUMERIC (ROBUST EU)
 # ==============================
 def clean_numeric(series):
 
-    original=series.astype(str)
+    original = series.astype(str)
 
-    cleaned=original.str.strip()
+    cleaned = (
+        original
+        .str.replace("€","",regex=False)
+        .str.replace("$","",regex=False)
+        .str.replace("£","",regex=False)
+        .str.replace(" ","",regex=False)
+        .str.replace(".","",regex=False)
+        .str.replace(",",".",regex=False)
+    )
 
-    cleaned=cleaned.str.replace(r"[€$£]","",regex=True)
+    numeric = pd.to_numeric(cleaned,errors="coerce")
 
-    cleaned=cleaned.str.replace(" ","")
+    changed = (original != cleaned).sum()
 
-    cleaned=cleaned.str.replace(r"\.(?=\d{3},)","",regex=True)
-
-    cleaned=cleaned.str.replace(",",".")    
-
-    numeric=pd.to_numeric(cleaned,errors="coerce")
-
-    changed=(original!=cleaned).sum()
-
-    pct=round((changed/len(series))*100,1)
-
-    return numeric,pct
-
+    return numeric, changed
 
 # ==============================
 # PLOT
@@ -184,7 +164,6 @@ def plot_raw(a,b,label):
     ax.legend()
 
     st.pyplot(fig)
-
 
 # ==============================
 # FILE UPLOAD
@@ -209,7 +188,7 @@ if file:
 
     with box:
 
-        h1,h2,h3,h4 = st.columns([3,2,1.5,3])
+        h1,h2,h3,h4 = st.columns([3,2,1.5,5])
 
         h1.markdown("**Kolom**")
         h2.markdown("**Type**")
@@ -218,7 +197,7 @@ if file:
 
         for col in df.columns:
 
-            c1,c2,c3,c4 = st.columns([3,2,1.5,3])
+            c1,c2,c3,c4 = st.columns([3,2,1.5,5])
 
             c1.write(col)
 
@@ -235,22 +214,27 @@ if file:
                     disabled=transformed
                 ):
 
-                    new_col,pct=clean_numeric(df[col])
+                    new_col,changed = clean_numeric(df[col])
 
                     df[col]=new_col
                     st.session_state.df=df
 
-                    st.session_state.transform_log[col]=pct
+                    st.session_state.transform_log[col]=changed
 
                     st.rerun()
 
             if col in st.session_state.transform_log:
 
-                pct = st.session_state.transform_log[col]
+                changed = st.session_state.transform_log[col]
+
+                dist=value_distribution(df[col])
 
                 c4.markdown(
-                    f"<span style='color:green'>✓ {pct}% aangepast</span>",
-                    unsafe_allow_html=True
+                    f"""
+                    ✅ {changed} values aangepast  
+                    total: {dist['total']}  
+                    zeros: {dist['zeros']}  
+                    """
                 )
 
     # ==============================
@@ -258,41 +242,37 @@ if file:
     # ==============================
     st.markdown("### Analyse instellingen")
 
-    settings_box = st.container(border=True)
+    col_left,col_right = st.columns(2)
 
-    with settings_box:
-
-        col_left,col_right = st.columns(2)
-
-        with col_left:
-            variant_col=st.selectbox(
-                "Variant kolom",
-                df.columns
-            )
-
-        numeric_cols=df.select_dtypes(include=["int","float"]).columns.tolist()
-
-        with col_right:
-            metric_col=st.selectbox(
-                "Metric kolom",
-                numeric_cols if numeric_cols else df.columns
-            )
-
-        statistic_type=st.selectbox(
-            "0-waardes",
-            ["Waardes uitsluiten","Waardes opnemen"],
-            index=0
+    with col_left:
+        variant_col=st.selectbox(
+            "Variant kolom",
+            df.columns
         )
 
-        variants=df[variant_col].astype(str).unique()
+    numeric_cols=df.select_dtypes(include=["int","float"]).columns.tolist()
 
-        control_col,variant_col_select = st.columns(2)
+    with col_right:
+        metric_col=st.selectbox(
+            "Metric kolom",
+            numeric_cols if numeric_cols else df.columns
+        )
 
-        with control_col:
-            control=st.selectbox("Control",variants)
+    statistic_type=st.selectbox(
+        "0-waardes",
+        ["Waardes uitsluiten","Waardes opnemen"],
+        index=0
+    )
 
-        with variant_col_select:
-            variant=st.selectbox("Variant",variants)
+    variants=df[variant_col].astype(str).unique()
+
+    control_col,variant_col_select = st.columns(2)
+
+    with control_col:
+        control=st.selectbox("Control",variants)
+
+    with variant_col_select:
+        variant=st.selectbox("Variant",variants)
 
     exclude_zeros=statistic_type=="Waardes uitsluiten"
 
@@ -318,8 +298,6 @@ if file:
     # ==============================
     if st.button("Analyse uitvoeren"):
 
-        # both helper functions now expect the samples that will actually
-        # be analysed; set_a/set_b already exclude zeroes when requested.
         if exclude_zeros:
             r = analyze_no_zeros(set_a, set_b)
         else:
@@ -368,9 +346,7 @@ st.dataframe(
 if st.button("Reset tabellen"):
 
     st.session_state.checks=st.session_state.checks.iloc[0:0]
-
     st.session_state.impact=st.session_state.impact.iloc[0:0]
-
     st.session_state.transform_log={}
 
     st.success("Tabellen gereset ✅")
